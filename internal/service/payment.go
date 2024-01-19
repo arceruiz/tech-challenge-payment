@@ -27,7 +27,6 @@ func (s *paymentService) Create(ctx context.Context, payment canonical.Payment) 
 	payment.Status = canonical.PAYMENT_CREATED
 	payment.ID = canonical.NewUUID()
 	payment.CreatedAt = time.Now()
-	payment.UpdatedAt = time.Now()
 	payment, err := s.repo.Create(ctx, payment)
 	if err != nil {
 		return nil, err
@@ -48,6 +47,7 @@ func (s *paymentService) Callback(ctx context.Context, paymentId string, status 
 		return canonical.ErrorNotFound
 	}
 
+	payment.UpdatedAt = time.Now()
 	payment.Status = status
 	err = s.repo.Update(ctx, paymentId, *payment)
 	if err != nil {
