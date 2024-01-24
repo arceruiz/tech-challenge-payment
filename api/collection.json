@@ -1,0 +1,150 @@
+{
+    "_type": "export",
+    "__export_format": 4,
+    "__export_date": "2024-01-18T22:45:30.947Z",
+    "__export_source": "insomnia.desktop.app:v2023.5.8",
+    "resources": [
+        {
+            "_id": "req_fc5000b6943b46d389a9e61396f149c1",
+            "parentId": "fld_7af5a7fd5b384d8ca361ea1346ef50ca",
+            "modified": 1705616043848,
+            "created": 1705615307832,
+            "url": "localhost:3001/api/payment/",
+            "name": "Create New Payment",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"payment_type\":0,\n\t\"order_id\":\"1234\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                },
+                {
+                    "name": "User-Agent",
+                    "value": "insomnia/2023.5.8"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -1702764132335.25,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "fld_7af5a7fd5b384d8ca361ea1346ef50ca",
+            "parentId": "wrk_1cb23363443343b1ba6787514b39b3e2",
+            "modified": 1705617878269,
+            "created": 1705615279097,
+            "name": "PaymentService",
+            "description": "",
+            "environment": {},
+            "environmentPropertyOrder": null,
+            "metaSortKey": -1705615279097,
+            "_type": "request_group"
+        },
+        {
+            "_id": "wrk_1cb23363443343b1ba6787514b39b3e2",
+            "parentId": null,
+            "modified": 1705617867351,
+            "created": 1705617867351,
+            "name": "tech-challenge",
+            "description": "",
+            "scope": "collection",
+            "_type": "workspace"
+        },
+        {
+            "_id": "req_da9b7152ecda4f05b1f16219b9ab492e",
+            "parentId": "fld_7af5a7fd5b384d8ca361ea1346ef50ca",
+            "modified": 1705617060504,
+            "created": 1705615283742,
+            "url": "localhost:3001/api/payment/13413e83-0bbf-4c5d-a500-1e7f9e79c69f",
+            "name": "Search Payment",
+            "description": "",
+            "method": "GET",
+            "body": {},
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "User-Agent",
+                    "value": "insomnia/2023.5.8"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -1701338556631.875,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "req_4c6eb284dea5471bb644b0cc2c20a7f6",
+            "parentId": "fld_7af5a7fd5b384d8ca361ea1346ef50ca",
+            "modified": 1705616508965,
+            "created": 1705615305238,
+            "url": "localhost:3001/api/payment/callback",
+            "name": "Payment Callback",
+            "description": "",
+            "method": "POST",
+            "body": {
+                "mimeType": "application/json",
+                "text": "{\n\t\"payment_id\":\"13413e83-0bbf-4c5d-a500-1e7f9e79c69f\",\n\t\"status\":\"NOK\"\n}"
+            },
+            "parameters": [],
+            "headers": [
+                {
+                    "name": "Content-Type",
+                    "value": "application/json"
+                },
+                {
+                    "name": "User-Agent",
+                    "value": "insomnia/2023.5.8"
+                }
+            ],
+            "authentication": {},
+            "metaSortKey": -1699912980928.5,
+            "isPrivate": false,
+            "settingStoreCookies": true,
+            "settingSendCookies": true,
+            "settingDisableRenderRequestBody": false,
+            "settingEncodeUrl": true,
+            "settingRebuildPath": true,
+            "settingFollowRedirects": "global",
+            "_type": "request"
+        },
+        {
+            "_id": "env_056fdf6a9d79054f28baf7c54717344caa14e8ea",
+            "parentId": "wrk_1cb23363443343b1ba6787514b39b3e2",
+            "modified": 1705617867354,
+            "created": 1705617867354,
+            "name": "Base Environment",
+            "data": {},
+            "dataPropertyOrder": null,
+            "color": null,
+            "isPrivate": false,
+            "metaSortKey": 1705617867354,
+            "_type": "environment"
+        },
+        {
+            "_id": "jar_056fdf6a9d79054f28baf7c54717344caa14e8ea",
+            "parentId": "wrk_1cb23363443343b1ba6787514b39b3e2",
+            "modified": 1705617867354,
+            "created": 1705617867354,
+            "name": "Default Jar",
+            "cookies": [],
+            "_type": "cookie_jar"
+        }
+    ]
+}
