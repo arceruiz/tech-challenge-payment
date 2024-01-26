@@ -163,7 +163,7 @@ func TestCallback(t *testing.T) {
 					PaymentID: "1234",
 					Status:    "ERROR",
 				}),
-				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_ERROR),
+				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -176,7 +176,7 @@ func TestCallback(t *testing.T) {
 					PaymentID: "1234",
 					Status:    "",
 				}),
-				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_ERROR),
+				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -189,7 +189,7 @@ func TestCallback(t *testing.T) {
 					PaymentID: "1234",
 					Status:    "asdasdasd",
 				}),
-				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_ERROR),
+				paymenyService: mockPaymentServiceForCallback("1234", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -202,7 +202,7 @@ func TestCallback(t *testing.T) {
 					PaymentID: errorProcessingID,
 					Status:    "",
 				}),
-				paymenyService: mockPaymentServiceForCallback("", canonical.PAYMENT_ERROR),
+				paymenyService: mockPaymentServiceForCallback("", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -212,7 +212,7 @@ func TestCallback(t *testing.T) {
 		"given invalid data, must return bad request": {
 			given: Given{
 				request:        createJsonRequest(http.MethodPost, endpoint, rest.PaymentRequest{}),
-				paymenyService: mockPaymentServiceForCallback("", canonical.PAYMENT_ERROR),
+				paymenyService: mockPaymentServiceForCallback("", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
 				err:        assert.NoError,

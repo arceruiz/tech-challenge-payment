@@ -25,3 +25,7 @@ func (m *PaymentServiceMock) GetByID(ctx context.Context, paymentId string) (*ca
 	args := m.Called(ctx, paymentId)
 	return args.Get(0).(*canonical.Payment), args.Error(1)
 }
+func (m *PaymentServiceMock) GetAll(ctx context.Context) ([]canonical.Payment, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]canonical.Payment), args.Error(1)
+}

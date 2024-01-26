@@ -4,6 +4,7 @@
 
 - Create Payments
 - Search Payments By ID
+- Get All Payments
 - Receive Callbacks from payment providers
 
 ## How To Run Locally
