@@ -29,6 +29,7 @@ func NewPaymentChannel(paymentService service.PaymentService) Payment {
 
 func (p *payment) RegisterGroup(g *echo.Group) {
 	g.GET("/:id", p.GetByID)
+	g.GET("", p.GetAll)
 	g.POST("/callback", p.Callback)
 	g.POST("/", p.Create)
 }
@@ -63,6 +64,15 @@ func (p *payment) GetByID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, payment)
+}
+
+func (p *payment) GetAll(c echo.Context) error {
+	payments, err := p.paymentSvc.GetAll(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusNotFound, "error searching payment")
+	}
+
+	return c.JSON(http.StatusOK, payments)
 }
 
 func (p *payment) Callback(c echo.Context) error {

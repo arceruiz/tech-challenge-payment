@@ -13,12 +13,12 @@ import (
 
 const (
 	collection = "payment"
+	database   = "payment"
 )
 
 var (
 	cfg           = &config.Cfg
 	ErrorNotFound = errors.New("entity not found")
-	database      = "payment"
 )
 
 func NewMongo() *mongo.Database {
@@ -34,10 +34,10 @@ type PaymentRepository interface {
 	GetByID(context.Context, string) (*canonical.Payment, error)
 	Update(ctx context.Context, id string, payment canonical.Payment) error
 	Create(ctx context.Context, payment canonical.Payment) (canonical.Payment, error)
+	GetAll(ctx context.Context) ([]canonical.Payment, error)
 }
 
 type paymentRepository struct {
-	db         *mongo.Client
 	collection *mongo.Collection
 }
 
@@ -78,4 +78,16 @@ func (r *paymentRepository) GetByID(ctx context.Context, id string) (*canonical.
 	}
 
 	return &payment, nil
+}
+
+func (r *paymentRepository) GetAll(ctx context.Context) ([]canonical.Payment, error) {
+	cursor, err := r.collection.Find(context.TODO(), bson.D{{}})
+	if err != nil {
+		return nil, err
+	}
+	var results []canonical.Payment
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		return nil, err
+	}
+	return results, nil
 }

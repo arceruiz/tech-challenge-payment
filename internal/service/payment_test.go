@@ -3,7 +3,9 @@ package service_test
 import (
 	"context"
 	"errors"
+	"net/http"
 	"tech-challenge-payment/internal/canonical"
+	"tech-challenge-payment/internal/integration/order"
 	"tech-challenge-payment/internal/repository"
 	repository_test "tech-challenge-payment/internal/repository"
 	"tech-challenge-payment/internal/service"
@@ -78,7 +80,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := service.NewPaymentService(tc.given.paymentRepo()).Create(context.Background(), tc.given.payment)
+		_, err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Create(context.Background(), tc.given.payment)
 
 		tc.expected.err(t, err)
 	}
@@ -121,7 +123,7 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := service.NewPaymentService(tc.given.paymentRepo()).GetByID(context.Background(), tc.given.id)
+		_, err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).GetByID(context.Background(), tc.given.id)
 
 		tc.expected.err(t, err)
 	}
@@ -233,7 +235,7 @@ func TestCallback(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		err := service.NewPaymentService(tc.given.paymentRepo()).Callback(context.Background(), tc.given.id, tc.given.status)
+		err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Callback(context.Background(), tc.given.id, tc.given.status)
 
 		tc.expected.err(t, err)
 	}

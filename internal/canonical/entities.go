@@ -26,16 +26,15 @@ type PaymentStatus int
 const (
 	PAYMENT_CREATED PaymentStatus = iota
 	PAYMENT_PAYED
-	PAYMENT_ERROR
 	PAYMENT_FAILED
 )
 
 var MapPaymentStatus = map[string]PaymentStatus{
 	"OK":        PAYMENT_PAYED,
 	"NOK":       PAYMENT_FAILED,
-	"ERROR":     PAYMENT_ERROR,
+	"ERROR":     PAYMENT_FAILED,
 	"INIT":      PAYMENT_CREATED,
-	"":          PAYMENT_ERROR,
+	"":          PAYMENT_FAILED,
 	"COMPLETED": PAYMENT_PAYED,
 	"PENDING":   PAYMENT_CREATED,
 }
