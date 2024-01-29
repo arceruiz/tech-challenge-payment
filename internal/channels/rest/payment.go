@@ -30,7 +30,7 @@ func NewPaymentChannel(paymentService service.PaymentService) Payment {
 
 func (p *payment) RegisterGroup(g *echo.Group) {
 	g.GET("/:id", p.GetByID)
-	g.GET("", p.GetAll)
+	g.GET("/", p.GetAll)
 	g.POST("/callback", p.Callback)
 	g.POST("/", p.Create)
 }
