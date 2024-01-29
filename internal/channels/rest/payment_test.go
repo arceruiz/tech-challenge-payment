@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"tech-challenge-payment/internal/canonical"
 	"tech-challenge-payment/internal/channels/rest"
+	"tech-challenge-payment/internal/mocks"
 	"tech-challenge-payment/internal/service"
-	service_test "tech-challenge-payment/internal/service"
 	"testing"
 
 	"github.com/labstack/echo/v4"
@@ -39,7 +39,7 @@ func TestRegisterGroup(t *testing.T) {
 		"given valid group, should register endpoints successfully": {
 			given: Given{
 				group:          echo.New().Group("/payment"),
-				paymenyService: &service_test.PaymentServiceMock{},
+				paymenyService: &mocks.PaymentServiceMock{},
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -314,8 +314,8 @@ func createJsonRequest(method, endpoint string, request interface{}) *http.Reque
 	return req
 }
 
-func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Payment) *service.PaymentServiceMock {
-	mockPaymentSvc := new(service.PaymentServiceMock)
+func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Payment) *mocks.PaymentServiceMock {
+	mockPaymentSvc := new(mocks.PaymentServiceMock)
 	mockPaymentSvc.On("Create", mock.Anything, paymentReceived).Return(&paymentReturned, nil)
 	mockPaymentSvc.On("Create", mock.Anything, canonical.Payment{
 		OrderID: "asdasdasdasd",
@@ -323,8 +323,8 @@ func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Paym
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.PaymentStatus) *service.PaymentServiceMock {
-	mockPaymentSvc := new(service.PaymentServiceMock)
+func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.PaymentStatus) *mocks.PaymentServiceMock {
+	mockPaymentSvc := new(mocks.PaymentServiceMock)
 
 	mockPaymentSvc.
 		On("Callback", mock.Anything, paymentID, paymentStatus).
@@ -336,8 +336,8 @@ func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.Pay
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.Payment) *service.PaymentServiceMock {
-	mockPaymentSvc := new(service.PaymentServiceMock)
+func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.Payment) *mocks.PaymentServiceMock {
+	mockPaymentSvc := new(mocks.PaymentServiceMock)
 
 	mockPaymentSvc.
 		On("GetByID", mock.Anything, paymentID).

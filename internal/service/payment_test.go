@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"tech-challenge-payment/internal/canonical"
 	"tech-challenge-payment/internal/integration/order"
+	"tech-challenge-payment/internal/mocks"
 	"tech-challenge-payment/internal/repository"
-	repository_test "tech-challenge-payment/internal/repository"
 	"tech-challenge-payment/internal/service"
 	"testing"
 	"time"
@@ -20,7 +20,7 @@ import (
 func TestCreate(t *testing.T) {
 
 	mpatch.PatchMethod(time.Now, func() time.Time {
-		return time.Date(2020, 11, 01, 00, 00, 00, 0, time.UTC)
+		return time.Date(0001, 01, 01, 00, 00, 00, 0, time.UTC)
 	})
 	mpatch.PatchMethod(canonical.NewUUID, func() string {
 		return "4c0fe202-f3e0-4e5f-9868-a2bf1dfb383b"
@@ -52,7 +52,7 @@ func TestCreate(t *testing.T) {
 						UpdatedAt:   time.Now(),
 						Status:      canonical.PAYMENT_CREATED,
 					}
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("Create", mock.Anything, payment).Return(payment, nil)
 					return repoMock
 				},
@@ -64,12 +64,23 @@ func TestCreate(t *testing.T) {
 		"given error creating, must return error": {
 			given: Given{
 				payment: canonical.Payment{
+					ID:          canonical.NewUUID(),
 					OrderID:     "1234",
 					PaymentType: 3,
+					CreatedAt:   time.Now(),
+					UpdatedAt:   time.Now(),
+					Status:      canonical.PAYMENT_CREATED,
 				},
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository_test.PaymentRepositoryMock{}
-					repoMock.On("Create", mock.Anything, mock.Anything).Return(canonical.Payment{}, errors.New("error creating payment"))
+					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock.On("Create", mock.Anything, mock.Anything).Return(canonical.Payment{
+						ID:          canonical.NewUUID(),
+						OrderID:     "1234",
+						PaymentType: 3,
+						CreatedAt:   time.Now(),
+						UpdatedAt:   time.Now(),
+						Status:      canonical.PAYMENT_CREATED,
+					}, errors.New("error creating payment"))
 					return repoMock
 				},
 			},
@@ -104,7 +115,7 @@ func TestGetByID(t *testing.T) {
 			given: Given{
 				id: "1234",
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
@@ -131,6 +142,9 @@ func TestGetByID(t *testing.T) {
 
 func TestCallback(t *testing.T) {
 
+	mpatch.PatchMethod(time.Now, func() time.Time {
+		return time.Date(0001, 01, 01, 00, 00, 00, 0, time.UTC)
+	})
 	mpatch.PatchMethod(canonical.NewUUID, func() string {
 		return "4c0fe202-f3e0-4e5f-9868-a2bf1dfb383b"
 	})
@@ -151,7 +165,7 @@ func TestCallback(t *testing.T) {
 				id:     "1234",
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
@@ -180,7 +194,7 @@ func TestCallback(t *testing.T) {
 				id:     "1234",
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(nil, errors.New("db error"))
 					return repoMock
 				},
@@ -194,7 +208,7 @@ func TestCallback(t *testing.T) {
 				id:     "1234",
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(nil, nil)
 					return repoMock
 				},
@@ -208,7 +222,7 @@ func TestCallback(t *testing.T) {
 				id:     "1234",
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &repository.PaymentRepositoryMock{}
+					repoMock := &mocks.PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
@@ -235,14 +249,17 @@ func TestCallback(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Callback(context.Background(), tc.given.id, tc.given.status)
+
+		orderMock := &mocks.OrderServiceMock{}
+		orderMock.On("UpdateStatus", "1234", "CANCELLED").Return(nil)
+		err := service.NewPaymentService(tc.given.paymentRepo(), orderMock).Callback(context.Background(), tc.given.id, tc.given.status)
 
 		tc.expected.err(t, err)
 	}
 }
 
-func setupRepoMock(payment canonical.Payment) *repository.PaymentRepositoryMock {
-	repoMock := &repository.PaymentRepositoryMock{}
+func setupRepoMock(payment canonical.Payment) *mocks.PaymentRepositoryMock {
+	repoMock := &mocks.PaymentRepositoryMock{}
 	repoMock.On("Create", mock.Anything, payment).Return(payment, nil)
 	return repoMock
 }
