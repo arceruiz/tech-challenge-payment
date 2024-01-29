@@ -18,3 +18,16 @@ jobs:
         run: go get ./...
       - name: Build
         run: CGO_ENABLED=0 go build -v -o dist/tech-challenge cmd/client/main.go
+      - name: Test
+        run: go test -v ./... -coverprofile="c.out"
+  sonarqube:
+    name: sonarqube 
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+      - uses: actions/checkout@v3
+      - run: semgrep --config auto .
+      - run: semgrep scan || true
+
