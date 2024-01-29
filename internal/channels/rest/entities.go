@@ -1,9 +1,6 @@
 package rest
 
 import (
-	"errors"
-	"net/http"
-	"tech-challenge-payment/internal/canonical"
 	"time"
 )
 
@@ -22,12 +19,4 @@ type PaymentRequest struct {
 type PaymentCallback struct {
 	PaymentID string `json:"payment_id"`
 	Status    string `json:"status"`
-}
-
-func HandleError(err error) int {
-	if errors.Is(err, canonical.ErrorNotFound) {
-		return http.StatusNotFound
-	}
-
-	return http.StatusInternalServerError
 }

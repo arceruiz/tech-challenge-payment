@@ -1,4 +1,4 @@
-package service_test
+package service
 
 import (
 	"context"
@@ -8,24 +8,15 @@ import (
 	"tech-challenge-payment/internal/integration/order"
 	"tech-challenge-payment/internal/mocks"
 	"tech-challenge-payment/internal/repository"
-	"tech-challenge-payment/internal/service"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/undefinedlabs/go-mpatch"
 )
 
 func TestCreate(t *testing.T) {
-
-	mpatch.PatchMethod(time.Now, func() time.Time {
-		return time.Date(0001, 01, 01, 00, 00, 00, 0, time.UTC)
-	})
-	mpatch.PatchMethod(canonical.NewUUID, func() string {
-		return "4c0fe202-f3e0-4e5f-9868-a2bf1dfb383b"
-	})
-
+	time := time.Now()
 	type Given struct {
 		payment     canonical.Payment
 		paymentRepo func() repository.PaymentRepository
@@ -40,20 +31,26 @@ func TestCreate(t *testing.T) {
 		"given payment with main fields filled, must return created paymend with all fields filled": {
 			given: Given{
 				payment: canonical.Payment{
+					ID:          canonical.NewUUID(),
 					OrderID:     "1234",
 					PaymentType: 3,
+					CreatedAt:   time,
+					UpdatedAt:   time,
+					Status:      canonical.PAYMENT_CREATED,
 				},
 				paymentRepo: func() repository.PaymentRepository {
 					payment := canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
 						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
+						CreatedAt:   time,
+						UpdatedAt:   time,
 						Status:      canonical.PAYMENT_CREATED,
 					}
 					repoMock := &mocks.PaymentRepositoryMock{}
-					repoMock.On("Create", mock.Anything, payment).Return(payment, nil)
+					repoMock.On("Create", mock.Anything, mock.MatchedBy(func(payment canonical.Payment) bool {
+						return payment.OrderID == "1234"
+					})).Return(payment, nil)
 					return repoMock
 				},
 			},
@@ -67,8 +64,8 @@ func TestCreate(t *testing.T) {
 					ID:          canonical.NewUUID(),
 					OrderID:     "1234",
 					PaymentType: 3,
-					CreatedAt:   time.Now(),
-					UpdatedAt:   time.Now(),
+					CreatedAt:   time,
+					UpdatedAt:   time,
 					Status:      canonical.PAYMENT_CREATED,
 				},
 				paymentRepo: func() repository.PaymentRepository {
@@ -77,8 +74,8 @@ func TestCreate(t *testing.T) {
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
 						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
+						CreatedAt:   time,
+						UpdatedAt:   time,
 						Status:      canonical.PAYMENT_CREATED,
 					}, errors.New("error creating payment"))
 					return repoMock
@@ -91,12 +88,11 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Create(context.Background(), tc.given.payment)
+		_, err := NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Create(context.Background(), tc.given.payment)
 
 		tc.expected.err(t, err)
 	}
 }
-
 func TestGetByID(t *testing.T) {
 
 	type Given struct {
@@ -134,20 +130,21 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := service.NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).GetByID(context.Background(), tc.given.id)
+		_, err := NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).GetByID(context.Background(), tc.given.id)
 
 		tc.expected.err(t, err)
 	}
 }
 
 func TestCallback(t *testing.T) {
-
-	mpatch.PatchMethod(time.Now, func() time.Time {
-		return time.Date(0001, 01, 01, 00, 00, 00, 0, time.UTC)
-	})
-	mpatch.PatchMethod(canonical.NewUUID, func() string {
-		return "4c0fe202-f3e0-4e5f-9868-a2bf1dfb383b"
-	})
+	payment := &canonical.Payment{
+		ID:          canonical.NewUUID(),
+		OrderID:     "1234",
+		PaymentType: 3,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		Status:      canonical.PAYMENT_CREATED,
+	}
 	type Given struct {
 		id          string
 		status      canonical.PaymentStatus
@@ -162,26 +159,14 @@ func TestCallback(t *testing.T) {
 	}{
 		"given payment payment found, update status": {
 			given: Given{
-				id:     "1234",
+				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
 					repoMock := &mocks.PaymentRepositoryMock{}
-					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
-						ID:          canonical.NewUUID(),
-						OrderID:     "1234",
-						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
-						Status:      canonical.PAYMENT_CREATED,
-					}, nil)
-					repoMock.On("Update", mock.Anything, "1234", canonical.Payment{
-						ID:          canonical.NewUUID(),
-						OrderID:     "1234",
-						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
-						Status:      canonical.PAYMENT_FAILED,
-					}).Return(nil)
+					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(payment, nil)
+					repoMock.On("Update", mock.Anything, payment.OrderID, mock.MatchedBy(func(input canonical.Payment) bool {
+						return input.OrderID == payment.OrderID
+					})).Return(nil)
 					return repoMock
 				},
 			},
@@ -191,11 +176,11 @@ func TestCallback(t *testing.T) {
 		},
 		"given error on db search": {
 			given: Given{
-				id:     "1234",
+				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
 					repoMock := &mocks.PaymentRepositoryMock{}
-					repoMock.On("GetByID", mock.Anything, "1234").Return(nil, errors.New("db error"))
+					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(nil, errors.New("db error"))
 					return repoMock
 				},
 			},
@@ -205,11 +190,11 @@ func TestCallback(t *testing.T) {
 		},
 		"given payment not found": {
 			given: Given{
-				id:     "1234",
+				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
 					repoMock := &mocks.PaymentRepositoryMock{}
-					repoMock.On("GetByID", mock.Anything, "1234").Return(nil, nil)
+					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(nil, nil)
 					return repoMock
 				},
 			},
@@ -219,26 +204,15 @@ func TestCallback(t *testing.T) {
 		},
 		"given update error return error": {
 			given: Given{
-				id:     "1234",
+				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
 					repoMock := &mocks.PaymentRepositoryMock{}
-					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
-						ID:          canonical.NewUUID(),
-						OrderID:     "1234",
-						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
-						Status:      canonical.PAYMENT_CREATED,
-					}, nil)
-					repoMock.On("Update", mock.Anything, "1234", canonical.Payment{
-						ID:          canonical.NewUUID(),
-						OrderID:     "1234",
-						PaymentType: 3,
-						CreatedAt:   time.Now(),
-						UpdatedAt:   time.Now(),
-						Status:      canonical.PAYMENT_FAILED,
-					}).Return(errors.New("db error"))
+
+					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(payment, nil)
+					repoMock.On("Update", mock.Anything, payment.OrderID, mock.MatchedBy(func(input canonical.Payment) bool {
+						return input.OrderID == payment.OrderID
+					})).Return(errors.New("db error"))
 					return repoMock
 				},
 			},
@@ -248,13 +222,14 @@ func TestCallback(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			orderMock := &order.OrderServiceMock{}
+			orderMock.On("UpdateStatus", payment.OrderID, "CANCELLED").Return(nil)
+			err := NewPaymentService(tc.given.paymentRepo(), orderMock).Callback(context.Background(), tc.given.id, tc.given.status)
 
-		orderMock := &mocks.OrderServiceMock{}
-		orderMock.On("UpdateStatus", "1234", "CANCELLED").Return(nil)
-		err := service.NewPaymentService(tc.given.paymentRepo(), orderMock).Callback(context.Background(), tc.given.id, tc.given.status)
-
-		tc.expected.err(t, err)
+			tc.expected.err(t, err)
+		})
 	}
 }
 

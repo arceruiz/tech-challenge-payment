@@ -301,6 +301,55 @@ func TestGetByID(t *testing.T) {
 	}
 }
 
+func TestGetAll(t *testing.T) {
+	endpoint := "/payment/"
+
+	type Given struct {
+		request        *http.Request
+		paymenyService service.PaymentService
+	}
+	type Expected struct {
+		err        assert.ErrorAssertionFunc
+		statusCode int
+	}
+	tests := map[string]struct {
+		given    Given
+		expected Expected
+	}{
+		"given valid id returns valid payment and status 200": {
+			given: Given{
+				request:        createRequest(http.MethodGet, endpoint),
+				paymenyService: mockPaymentServiceForGetAll(),
+			},
+			expected: Expected{
+				err:        assert.NoError,
+				statusCode: http.StatusOK,
+			},
+		},
+		"given invalic id returns no payment and status 404": {
+			given: Given{
+				request:        createRequest(http.MethodGet, endpoint),
+				paymenyService: mockPaymentServiceForGetAllErr(),
+			},
+			expected: Expected{
+				err:        assert.NoError,
+				statusCode: http.StatusNotFound,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		rec := httptest.NewRecorder()
+		e := echo.New().NewContext(tc.given.request, rec)
+		err := rest.NewPaymentChannel(tc.given.paymenyService).GetAll(e)
+		statusCode := rec.Result().StatusCode
+
+		assert.Equal(t, tc.expected.statusCode, statusCode)
+
+		tc.expected.err(t, err)
+	}
+}
+
 func createRequest(method, endpoint string) *http.Request {
 	req := createJsonRequest(method, endpoint, nil)
 	req.Header.Del("Content-Type")
@@ -346,5 +395,29 @@ func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.P
 		On("GetByID", mock.Anything, errorProcessingID).
 		Return(paymentReturned, errors.New(""))
 
+	return mockPaymentSvc
+}
+
+func mockPaymentServiceForGetAll() *mocks.PaymentServiceMock {
+	mockPaymentSvc := new(mocks.PaymentServiceMock)
+	payments := []canonical.Payment{
+		{
+			ID: "1234",
+		},
+		{
+			ID: "1235",
+		},
+	}
+	mockPaymentSvc.
+		On("GetAll", mock.Anything).
+		Return(payments, nil)
+	return mockPaymentSvc
+}
+
+func mockPaymentServiceForGetAllErr() *mocks.PaymentServiceMock {
+	mockPaymentSvc := new(mocks.PaymentServiceMock)
+	mockPaymentSvc.
+		On("GetAll", mock.Anything).
+		Return(nil, errors.New(""))
 	return mockPaymentSvc
 }

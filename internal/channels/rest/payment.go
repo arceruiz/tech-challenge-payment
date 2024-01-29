@@ -15,6 +15,7 @@ type Payment interface {
 	Callback(c echo.Context) error
 	GetByID(c echo.Context) error
 	Create(c echo.Context) error
+	GetAll(c echo.Context) error
 }
 
 type payment struct {
