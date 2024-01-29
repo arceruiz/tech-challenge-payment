@@ -1,11 +1,10 @@
-package repository_test
+package repository
 
 import (
 	"context"
 	"reflect"
 	"tech-challenge-payment/internal/canonical"
 	"tech-challenge-payment/internal/config"
-	"tech-challenge-payment/internal/repository"
 	"testing"
 	"time"
 
@@ -33,7 +32,7 @@ func TestGetByID(t *testing.T) {
 		"given valid search result, must return valid payment": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(mtest.CreateCursorResponse(1, "payment.payment", mtest.FirstBatch, bson.D{
 						{Key: "_id", Value: "payment_valid"},
 						{Key: "order_id", Value: "order_valid"},
@@ -56,11 +55,82 @@ func TestGetByID(t *testing.T) {
 		"given entity not found must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(mtest.CreateCursorResponse(0, "payment.payment", mtest.FirstBatch))
 					payment, err := repo.GetByID(context.Background(), "asd")
 					assert.NotNil(t, err)
 					assert.Equal(t, err.Error(), "mongo: no documents in result")
+					assert.Nil(t, payment)
+				},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		db := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
+		db.Run("", tc.given.mtestFunc)
+	}
+}
+
+func TestGetAll(t *testing.T) {
+
+	mpatch.PatchMethod(time.Now, func() time.Time {
+		return time.Date(2020, 11, 01, 00, 00, 00, 0, time.UTC)
+	})
+
+	type Given struct {
+		mtestFunc func(mt *mtest.T)
+	}
+	type Expected struct {
+	}
+	tests := map[string]struct {
+		given    Given
+		expected Expected
+	}{
+		"given valid search result, must return valid payment": {
+			given: Given{
+				mtestFunc: func(mt *mtest.T) {
+					repo := NewPaymentRepo(mt.DB)
+					first := mtest.CreateCursorResponse(1, "payment.payment", mtest.FirstBatch, bson.D{
+						{Key: "_id", Value: "payment_valid"},
+						{Key: "order_id", Value: "order_valid"},
+						{Key: "payment_type", Value: 0},
+						{Key: "created_at", Value: time.Now()},
+						{Key: "updated_at", Value: time.Now()},
+						{Key: "status", Value: 0},
+					})
+					getMore := mtest.CreateCursorResponse(1, "payment.payment", mtest.NextBatch, bson.D{
+						{Key: "_id", Value: "payment_valid"},
+						{Key: "order_id", Value: "order_valid"},
+						{Key: "payment_type", Value: 0},
+						{Key: "created_at", Value: time.Now()},
+						{Key: "updated_at", Value: time.Now()},
+						{Key: "status", Value: 0},
+					})
+
+					lastCursor := mtest.CreateCursorResponse(0, "payment.payment", mtest.NextBatch)
+					mt.AddMockResponses(first, getMore, lastCursor)
+					payments, err := repo.GetAll(context.Background())
+					assert.Nil(t, err)
+					for _, payment := range payments {
+						assert.Equal(t, payment.ID, "payment_valid")
+						assert.Equal(t, payment.OrderID, "order_valid")
+						assert.Equal(t, payment.PaymentType, 0)
+						assert.Equal(t, payment.CreatedAt, time.Now())
+						assert.Equal(t, payment.UpdatedAt, time.Now())
+						assert.Equal(t, payment.Status, canonical.PAYMENT_CREATED)
+					}
+				},
+			},
+		},
+		"given entity not found must return error": {
+			given: Given{
+				mtestFunc: func(mt *mtest.T) {
+					repo := NewPaymentRepo(mt.DB)
+					mt.AddMockResponses(mtest.CreateWriteErrorsResponse(mtest.WriteError{Message: "mongo: no documents in result"}))
+					payment, err := repo.GetAll(context.Background())
+					assert.NotNil(t, err)
+					assert.Equal(t, err.Error(), "write command error: [{write errors: [{mongo: no documents in result}]}, {<nil>}]")
 					assert.Nil(t, payment)
 				},
 			},
@@ -91,7 +161,7 @@ func TestCreate(t *testing.T) {
 		"given given no error saving must return correct entity": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(mtest.CreateSuccessResponse())
 
 					tPayment := canonical.Payment{
@@ -114,7 +184,7 @@ func TestCreate(t *testing.T) {
 		"given given error saving must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(
 						bson.D{
 							{Key: "ok", Value: -1},
@@ -164,7 +234,7 @@ func TestUpdate(t *testing.T) {
 		"given given no error updating must return no error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(bson.D{
 						{Key: "ok", Value: 1},
 						{Key: "value", Value: bson.D{
@@ -196,7 +266,7 @@ func TestUpdate(t *testing.T) {
 		"given error saving must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := repository.NewPaymentRepo(mt.DB)
+					repo := NewPaymentRepo(mt.DB)
 					mt.AddMockResponses(
 						bson.D{
 							{Key: "ok", Value: -1},
@@ -229,6 +299,6 @@ func TestUpdate(t *testing.T) {
 func TestNewMongo(t *testing.T) {
 
 	config.ParseFromFlags()
-	got := repository.NewMongo()
+	got := NewMongo()
 	assert.True(t, got != nil && reflect.TypeOf(got).String() == "*mongo.Database")
 }
