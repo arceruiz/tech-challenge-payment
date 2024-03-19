@@ -15,9 +15,9 @@ type rest struct {
 	payment Payment
 }
 
-func New(payment Payment) rest {
+func New() rest {
 	return rest{
-		payment: payment,
+		payment: NewPaymentChannel(),
 	}
 }
 
@@ -25,7 +25,7 @@ func (r rest) Start() error {
 	router := echo.New()
 
 	router.Use(middlewares.Logger)
-	router.Use(middlewares.Authorization)
+	// router.Use(middlewares.Authorization)
 
 	mainGroup := router.Group("/api")
 	paymentGroup := mainGroup.Group("/payment")

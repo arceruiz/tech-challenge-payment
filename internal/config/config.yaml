@@ -3,3 +3,11 @@ server:
   orderServiceHost: http://localhost:3003
 db:
   connectionString: mongodb://root:password@0.0.0.0:27017/
+sqs:
+  endpoint: "http://localhost:4566"
+  region: sa-east-1
+  payment_pending_queue: http://sqs.sa-east-1.localhost.localstack.cloud:4566/000000000000/paymentpendingqueue
+  payment_payed_queue: http://sqs.sa-east-1.localhost.localstack.cloud:4566/000000000000/paymentpayedqueue
+  payment_cancelled_queue: http://sqs.sa-east-1.localhost.localstack.cloud:4566/000000000000/paymentcancelledqueue
+# awslocal sqs send-message --region sa-east-1 --endpoint-url http://localhost:4566 --queue-url http://sqs.sa-east-1.localhost.localstack.cloud:4566/000000000000/paymentpendingqueue --message-body "Hello from Amazon SQS."
+# awslocal sqs purge-queue --queue-url http://sqs.sa-east-1.localhost.localstack.cloud:4566/000000000000/paymentpendingqueue

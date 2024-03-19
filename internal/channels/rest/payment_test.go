@@ -1,4 +1,4 @@
-package rest_test
+package rest
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"tech-challenge-payment/internal/canonical"
-	"tech-challenge-payment/internal/channels/rest"
-	"tech-challenge-payment/internal/mocks"
 	"tech-challenge-payment/internal/service"
 	"testing"
 
@@ -39,7 +37,7 @@ func TestRegisterGroup(t *testing.T) {
 		"given valid group, should register endpoints successfully": {
 			given: Given{
 				group:          echo.New().Group("/payment"),
-				paymenyService: &mocks.PaymentServiceMock{},
+				paymenyService: &PaymentServiceMock{},
 			},
 			expected: Expected{
 				err:        assert.NoError,
@@ -49,7 +47,9 @@ func TestRegisterGroup(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		p := rest.NewPaymentChannel(tc.given.paymenyService)
+		p := payment{
+			paymentSvc: tc.given.paymenyService,
+		}
 		p.RegisterGroup(tc.given.group)
 
 		rec := httptest.NewRecorder()
@@ -84,7 +84,7 @@ func TestCreate(t *testing.T) {
 	}{
 		"given normal json income must process normally": {
 			given: Given{
-				request:        createJsonRequest(http.MethodPost, endpoint, rest.PaymentRequest{}),
+				request:        createJsonRequest(http.MethodPost, endpoint, PaymentRequest{}),
 				paymenyService: mockPaymentServiceForCreate(canonical.Payment{}, canonical.Payment{}),
 			},
 			expected: Expected{
@@ -104,7 +104,7 @@ func TestCreate(t *testing.T) {
 		},
 		"given invalid data, must return application error": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentRequest{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentRequest{
 					PaymentType: 0,
 					Status:      0,
 					OrderID:     "asdasdasdasd",
@@ -120,7 +120,11 @@ func TestCreate(t *testing.T) {
 
 	for _, tc := range tests {
 		rec := httptest.NewRecorder()
-		err := rest.NewPaymentChannel(tc.given.paymenyService).Create(echo.New().NewContext(tc.given.request, rec))
+
+		p := payment{
+			paymentSvc: tc.given.paymenyService,
+		}
+		err := p.Create(echo.New().NewContext(tc.given.request, rec))
 		statusCode := rec.Result().StatusCode
 
 		assert.Equal(t, tc.expected.statusCode, statusCode)
@@ -146,7 +150,7 @@ func TestCallback(t *testing.T) {
 	}{
 		"given normal json with status ok income must process normally as ok": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentCallback{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentCallback{
 					PaymentID: "1234",
 					Status:    "OK",
 				}),
@@ -159,7 +163,7 @@ func TestCallback(t *testing.T) {
 		},
 		"given normal json with status error income must process normally as error": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentCallback{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentCallback{
 					PaymentID: "1234",
 					Status:    "ERROR",
 				}),
@@ -172,7 +176,7 @@ func TestCallback(t *testing.T) {
 		},
 		"given normal json with empty status income must process normally as error": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentCallback{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentCallback{
 					PaymentID: "1234",
 					Status:    "",
 				}),
@@ -185,7 +189,7 @@ func TestCallback(t *testing.T) {
 		},
 		"given normal json with unkown status income must process normally as error": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentCallback{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentCallback{
 					PaymentID: "1234",
 					Status:    "asdasdasd",
 				}),
@@ -198,7 +202,7 @@ func TestCallback(t *testing.T) {
 		},
 		"given application error, must return statuscode 500": {
 			given: Given{
-				request: createJsonRequest(http.MethodPost, endpoint, rest.PaymentCallback{
+				request: createJsonRequest(http.MethodPost, endpoint, PaymentCallback{
 					PaymentID: errorProcessingID,
 					Status:    "",
 				}),
@@ -211,7 +215,7 @@ func TestCallback(t *testing.T) {
 		},
 		"given invalid data, must return bad request": {
 			given: Given{
-				request:        createJsonRequest(http.MethodPost, endpoint, rest.PaymentRequest{}),
+				request:        createJsonRequest(http.MethodPost, endpoint, PaymentRequest{}),
 				paymenyService: mockPaymentServiceForCallback("", canonical.PAYMENT_FAILED),
 			},
 			expected: Expected{
@@ -223,7 +227,10 @@ func TestCallback(t *testing.T) {
 
 	for _, tc := range tests {
 		rec := httptest.NewRecorder()
-		err := rest.NewPaymentChannel(tc.given.paymenyService).Callback(echo.New().NewContext(tc.given.request, rec))
+		p := payment{
+			paymentSvc: tc.given.paymenyService,
+		}
+		err := p.Callback(echo.New().NewContext(tc.given.request, rec))
 		statusCode := rec.Result().StatusCode
 
 		assert.Equal(t, tc.expected.statusCode, statusCode)
@@ -292,7 +299,10 @@ func TestGetByID(t *testing.T) {
 		e.SetParamNames("id")
 
 		e.SetParamValues(tc.given.pathParamID)
-		err := rest.NewPaymentChannel(tc.given.paymenyService).GetByID(e)
+		p := payment{
+			paymentSvc: tc.given.paymenyService,
+		}
+		err := p.GetByID(e)
 		statusCode := rec.Result().StatusCode
 
 		assert.Equal(t, tc.expected.statusCode, statusCode)
@@ -341,7 +351,10 @@ func TestGetAll(t *testing.T) {
 	for _, tc := range tests {
 		rec := httptest.NewRecorder()
 		e := echo.New().NewContext(tc.given.request, rec)
-		err := rest.NewPaymentChannel(tc.given.paymenyService).GetAll(e)
+		p := payment{
+			paymentSvc: tc.given.paymenyService,
+		}
+		err := p.GetAll(e)
 		statusCode := rec.Result().StatusCode
 
 		assert.Equal(t, tc.expected.statusCode, statusCode)
@@ -363,8 +376,8 @@ func createJsonRequest(method, endpoint string, request interface{}) *http.Reque
 	return req
 }
 
-func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Payment) *mocks.PaymentServiceMock {
-	mockPaymentSvc := new(mocks.PaymentServiceMock)
+func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Payment) *PaymentServiceMock {
+	mockPaymentSvc := new(PaymentServiceMock)
 	mockPaymentSvc.On("Create", mock.Anything, paymentReceived).Return(&paymentReturned, nil)
 	mockPaymentSvc.On("Create", mock.Anything, canonical.Payment{
 		OrderID: "asdasdasdasd",
@@ -372,8 +385,8 @@ func mockPaymentServiceForCreate(paymentReceived, paymentReturned canonical.Paym
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.PaymentStatus) *mocks.PaymentServiceMock {
-	mockPaymentSvc := new(mocks.PaymentServiceMock)
+func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.PaymentStatus) *PaymentServiceMock {
+	mockPaymentSvc := new(PaymentServiceMock)
 
 	mockPaymentSvc.
 		On("Callback", mock.Anything, paymentID, paymentStatus).
@@ -385,8 +398,8 @@ func mockPaymentServiceForCallback(paymentID string, paymentStatus canonical.Pay
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.Payment) *mocks.PaymentServiceMock {
-	mockPaymentSvc := new(mocks.PaymentServiceMock)
+func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.Payment) *PaymentServiceMock {
+	mockPaymentSvc := new(PaymentServiceMock)
 
 	mockPaymentSvc.
 		On("GetByID", mock.Anything, paymentID).
@@ -398,8 +411,8 @@ func mockPaymentServiceForGetByID(paymentID string, paymentReturned *canonical.P
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForGetAll() *mocks.PaymentServiceMock {
-	mockPaymentSvc := new(mocks.PaymentServiceMock)
+func mockPaymentServiceForGetAll() *PaymentServiceMock {
+	mockPaymentSvc := new(PaymentServiceMock)
 	payments := []canonical.Payment{
 		{
 			ID: "1234",
@@ -414,8 +427,8 @@ func mockPaymentServiceForGetAll() *mocks.PaymentServiceMock {
 	return mockPaymentSvc
 }
 
-func mockPaymentServiceForGetAllErr() *mocks.PaymentServiceMock {
-	mockPaymentSvc := new(mocks.PaymentServiceMock)
+func mockPaymentServiceForGetAllErr() *PaymentServiceMock {
+	mockPaymentSvc := new(PaymentServiceMock)
 	mockPaymentSvc.
 		On("GetAll", mock.Anything).
 		Return(nil, errors.New(""))

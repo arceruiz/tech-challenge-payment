@@ -22,9 +22,9 @@ type payment struct {
 	paymentSvc service.PaymentService
 }
 
-func NewPaymentChannel(paymentService service.PaymentService) Payment {
+func NewPaymentChannel() Payment {
 	return &payment{
-		paymentSvc: paymentService,
+		paymentSvc: service.NewPaymentService(),
 	}
 }
 

@@ -1,4 +1,4 @@
-package mocks
+package service
 
 import (
 	"context"
@@ -6,6 +6,16 @@ import (
 
 	"github.com/stretchr/testify/mock"
 )
+
+type PublisherMock struct {
+	mock.Mock
+}
+
+func (p *PublisherMock) SendMessage(inputMsg any, queueURL string) error {
+	args := p.Called()
+
+	return args.Error(0)
+}
 
 type PaymentRepositoryMock struct {
 	mock.Mock

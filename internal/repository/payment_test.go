@@ -32,7 +32,9 @@ func TestGetByID(t *testing.T) {
 		"given valid search result, must return valid payment": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(mtest.CreateCursorResponse(1, "payment.payment", mtest.FirstBatch, bson.D{
 						{Key: "_id", Value: "payment_valid"},
 						{Key: "order_id", Value: "order_valid"},
@@ -55,7 +57,9 @@ func TestGetByID(t *testing.T) {
 		"given entity not found must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(mtest.CreateCursorResponse(0, "payment.payment", mtest.FirstBatch))
 					payment, err := repo.GetByID(context.Background(), "asd")
 					assert.NotNil(t, err)
@@ -90,7 +94,9 @@ func TestGetAll(t *testing.T) {
 		"given valid search result, must return valid payment": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					first := mtest.CreateCursorResponse(1, "payment.payment", mtest.FirstBatch, bson.D{
 						{Key: "_id", Value: "payment_valid"},
 						{Key: "order_id", Value: "order_valid"},
@@ -126,7 +132,9 @@ func TestGetAll(t *testing.T) {
 		"given entity not found must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(mtest.CreateWriteErrorsResponse(mtest.WriteError{Message: "mongo: no documents in result"}))
 					payment, err := repo.GetAll(context.Background())
 					assert.NotNil(t, err)
@@ -161,7 +169,9 @@ func TestCreate(t *testing.T) {
 		"given given no error saving must return correct entity": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(mtest.CreateSuccessResponse())
 
 					tPayment := canonical.Payment{
@@ -184,7 +194,9 @@ func TestCreate(t *testing.T) {
 		"given given error saving must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(
 						bson.D{
 							{Key: "ok", Value: -1},
@@ -234,7 +246,9 @@ func TestUpdate(t *testing.T) {
 		"given given no error updating must return no error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(bson.D{
 						{Key: "ok", Value: 1},
 						{Key: "value", Value: bson.D{
@@ -266,7 +280,9 @@ func TestUpdate(t *testing.T) {
 		"given error saving must return error": {
 			given: Given{
 				mtestFunc: func(mt *mtest.T) {
-					repo := NewPaymentRepo(mt.DB)
+					repo := paymentRepository{
+						collection: mt.DB.Collection("fake-collection"),
+					}
 					mt.AddMockResponses(
 						bson.D{
 							{Key: "ok", Value: -1},
