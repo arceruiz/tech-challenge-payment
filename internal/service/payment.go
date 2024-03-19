@@ -3,7 +3,8 @@ package service
 import (
 	"context"
 	"tech-challenge-payment/internal/canonical"
-	"tech-challenge-payment/internal/integration/order"
+	"tech-challenge-payment/internal/config"
+	"tech-challenge-payment/internal/integration/sqs_publisher"
 	"tech-challenge-payment/internal/repository"
 	"time"
 )
@@ -21,14 +22,19 @@ type PaymentService interface {
 }
 
 type paymentService struct {
-	repo         repository.PaymentRepository
-	orderService order.OrderService
+	repo          repository.PaymentRepository
+	publisher     sqs_publisher.Publisher
+	statusToQueue map[canonical.PaymentStatus]string
 }
 
-func NewPaymentService(repo repository.PaymentRepository, orderService order.OrderService) PaymentService {
+func NewPaymentService() PaymentService {
 	return &paymentService{
-		repo:         repo,
-		orderService: orderService,
+		repo:      repository.NewPaymentRepo(),
+		publisher: sqs_publisher.NewSQS(),
+		statusToQueue: map[canonical.PaymentStatus]string{
+			canonical.PAYMENT_FAILED: config.Get().SQS.PaymentCancelledQueue,
+			canonical.PAYMENT_PAYED:  config.Get().SQS.PaymentPayedQueue,
+		},
 	}
 }
 
@@ -36,10 +42,12 @@ func (s *paymentService) Create(ctx context.Context, payment canonical.Payment) 
 	payment.Status = canonical.PAYMENT_CREATED
 	payment.ID = canonical.NewUUID()
 	payment.CreatedAt = time.Now()
+
 	payment, err := s.repo.Create(ctx, payment)
 	if err != nil {
 		return nil, err
 	}
+
 	return &payment, nil
 }
 
@@ -52,28 +60,20 @@ func (s *paymentService) Callback(ctx context.Context, paymentId string, status 
 	if err != nil {
 		return err
 	}
+
 	if payment == nil {
 		return canonical.ErrorNotFound
 	}
 
 	payment.UpdatedAt = time.Now()
 	payment.Status = status
+
 	err = s.repo.Update(ctx, paymentId, *payment)
 	if err != nil {
 		return err
 	}
 
-	orderStatus := ""
-	switch status {
-	case canonical.PAYMENT_PAYED:
-		orderStatus = ORDER_PAYED
-	case canonical.PAYMENT_FAILED:
-		orderStatus = ORDER_CANCELLED
-	default:
-		return nil
-	}
-
-	err = s.orderService.UpdateStatus(payment.OrderID, orderStatus)
+	err = s.publisher.SendMessage(payment.OrderID, s.statusToQueue[status])
 	if err != nil {
 		return err
 	}

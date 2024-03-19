@@ -22,6 +22,13 @@ type Config struct {
 	DB struct {
 		ConnectionString string `cfg:"connectionString"`
 	} `cfg:"db"`
+	SQS struct {
+		PaymentPendingQueue   string `cfg:"payment_pending_queue"`
+		PaymentPayedQueue     string `cfg:"payment_payed_queue"`
+		PaymentCancelledQueue string `cfg:"payment_cancelled_queue"`
+		Region                string `cfg:"region"`
+		Endpoint              string `cfg:"endpoint"`
+	} `cfg:"sqs"`
 }
 
 func ParseFromFlags() {
@@ -40,4 +47,7 @@ func parse(dirs ...string) {
 	); err != nil {
 		log.Panic(err)
 	}
+}
+func Get() Config {
+	return Cfg
 }

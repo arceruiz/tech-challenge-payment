@@ -41,9 +41,9 @@ type paymentRepository struct {
 	collection *mongo.Collection
 }
 
-func NewPaymentRepo(db *mongo.Database) PaymentRepository {
+func NewPaymentRepo() PaymentRepository {
 	return &paymentRepository{
-		collection: db.Collection(collection),
+		collection: NewMongo().Collection(collection),
 	}
 }
 

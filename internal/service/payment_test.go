@@ -3,10 +3,8 @@ package service
 import (
 	"context"
 	"errors"
-	"net/http"
 	"tech-challenge-payment/internal/canonical"
-	"tech-challenge-payment/internal/integration/order"
-	"tech-challenge-payment/internal/mocks"
+	"tech-challenge-payment/internal/integration/sqs_publisher"
 	"tech-challenge-payment/internal/repository"
 	"testing"
 	"time"
@@ -47,7 +45,7 @@ func TestCreate(t *testing.T) {
 						UpdatedAt:   time,
 						Status:      canonical.PAYMENT_CREATED,
 					}
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("Create", mock.Anything, mock.MatchedBy(func(payment canonical.Payment) bool {
 						return payment.OrderID == "1234"
 					})).Return(payment, nil)
@@ -69,7 +67,7 @@ func TestCreate(t *testing.T) {
 					Status:      canonical.PAYMENT_CREATED,
 				},
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("Create", mock.Anything, mock.Anything).Return(canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
@@ -88,7 +86,10 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).Create(context.Background(), tc.given.payment)
+		paymentSvc := paymentService{
+			repo: tc.given.paymentRepo(),
+		}
+		_, err := paymentSvc.Create(context.Background(), tc.given.payment)
 
 		tc.expected.err(t, err)
 	}
@@ -111,7 +112,7 @@ func TestGetByID(t *testing.T) {
 			given: Given{
 				id: "1234",
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, "1234").Return(&canonical.Payment{
 						ID:          canonical.NewUUID(),
 						OrderID:     "1234",
@@ -130,7 +131,10 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		_, err := NewPaymentService(tc.given.paymentRepo(), order.NewOrderService(http.DefaultClient)).GetByID(context.Background(), tc.given.id)
+		paymentSvc := paymentService{
+			repo: tc.given.paymentRepo(),
+		}
+		_, err := paymentSvc.GetByID(context.Background(), tc.given.id)
 
 		tc.expected.err(t, err)
 	}
@@ -149,6 +153,7 @@ func TestCallback(t *testing.T) {
 		id          string
 		status      canonical.PaymentStatus
 		paymentRepo func() repository.PaymentRepository
+		publisher   func() sqs_publisher.Publisher
 	}
 	type Expected struct {
 		err assert.ErrorAssertionFunc
@@ -162,12 +167,19 @@ func TestCallback(t *testing.T) {
 				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(payment, nil)
 					repoMock.On("Update", mock.Anything, payment.OrderID, mock.MatchedBy(func(input canonical.Payment) bool {
 						return input.OrderID == payment.OrderID
 					})).Return(nil)
 					return repoMock
+				},
+				publisher: func() sqs_publisher.Publisher {
+					pubMock := new(PublisherMock)
+
+					pubMock.On("SendMessage").Return(nil)
+
+					return pubMock
 				},
 			},
 			expected: Expected{
@@ -179,9 +191,12 @@ func TestCallback(t *testing.T) {
 				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(nil, errors.New("db error"))
 					return repoMock
+				},
+				publisher: func() sqs_publisher.Publisher {
+					return new(PublisherMock)
 				},
 			},
 			expected: Expected{
@@ -193,9 +208,12 @@ func TestCallback(t *testing.T) {
 				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(nil, nil)
 					return repoMock
+				},
+				publisher: func() sqs_publisher.Publisher {
+					return new(PublisherMock)
 				},
 			},
 			expected: Expected{
@@ -207,13 +225,16 @@ func TestCallback(t *testing.T) {
 				id:     payment.OrderID,
 				status: canonical.PAYMENT_FAILED,
 				paymentRepo: func() repository.PaymentRepository {
-					repoMock := &mocks.PaymentRepositoryMock{}
+					repoMock := &PaymentRepositoryMock{}
 
 					repoMock.On("GetByID", mock.Anything, payment.OrderID).Return(payment, nil)
 					repoMock.On("Update", mock.Anything, payment.OrderID, mock.MatchedBy(func(input canonical.Payment) bool {
 						return input.OrderID == payment.OrderID
 					})).Return(errors.New("db error"))
 					return repoMock
+				},
+				publisher: func() sqs_publisher.Publisher {
+					return new(PublisherMock)
 				},
 			},
 			expected: Expected{
@@ -224,17 +245,14 @@ func TestCallback(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			orderMock := &order.OrderServiceMock{}
-			orderMock.On("UpdateStatus", payment.OrderID, "CANCELLED").Return(nil)
-			err := NewPaymentService(tc.given.paymentRepo(), orderMock).Callback(context.Background(), tc.given.id, tc.given.status)
+			paymentSvc := paymentService{
+				repo:      tc.given.paymentRepo(),
+				publisher: tc.given.publisher(),
+			}
+
+			err := paymentSvc.Callback(context.Background(), tc.given.id, tc.given.status)
 
 			tc.expected.err(t, err)
 		})
 	}
-}
-
-func setupRepoMock(payment canonical.Payment) *mocks.PaymentRepositoryMock {
-	repoMock := &mocks.PaymentRepositoryMock{}
-	repoMock.On("Create", mock.Anything, payment).Return(payment, nil)
-	return repoMock
 }
