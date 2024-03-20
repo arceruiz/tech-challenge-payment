@@ -2,8 +2,9 @@
 
 # Description
 
-This service is responsible to receive the payment request from Order-Service, send it to the payment provider (not implemented) and receive it's callback with the payment state.
-After receiving the state from payment provider, it will update the order status according to the payment state.  We have a diagram about a flow of this service here: [Create Flow ](./docs/diagrams/image.png), [Callback Flow](./docs/diagrams/image2.png) 
+This service is responsible to receive the payment request from a SQS queue, send it to the payment provider (not implemented) and receive it's callback with the payment state.
+After receiving the state from payment provider, it will update the payment status and send a new message in a SQS queue about this state.
+We have a diagram about a flow of this service here: [Create Flow ](./docs/diagrams/flow-diagram.png), [Cancelled Flow](./docs/diagrams/cancelled-flow-diagram.png) 
 
 ## Features
 

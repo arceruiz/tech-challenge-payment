@@ -1,0 +1,16 @@
+@startuml
+
+participant     PaymentService      as paymentsvc
+queue           payment_pending     as paymentpending
+queue           payment_cancelled   as paymentcancelled
+actor           PaymentSupplier     as paymentSupplier
+database        PaymentDB           as paymentdb
+
+paymentsvc --> paymentpending : listen to the queue
+paymentsvc --> paymentdb : save a new payment
+paymentsvc --> paymentSupplier : call the partner
+paymentsvc <-- paymentSupplier : receive a negative callback
+paymentsvc --> paymentdb : update payment status
+paymentsvc --> paymentcancelled : send to the queue with the new state
+
+@enduml
