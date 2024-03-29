@@ -16,18 +16,16 @@ type Config struct {
 		Key string `cfg:"key"`
 	} `cfg:"token"`
 	Server struct {
-		Port             string `cfg:"port"`
-		OrderServiceHost string `cfg:"orderServiceHost"`
+		Port string `cfg:"port"`
 	} `cfg:"server"`
 	DB struct {
-		ConnectionString string `cfg:"connectionString"`
+		ConnectionString string `cfg:"connection_string"`
 	} `cfg:"db"`
 	SQS struct {
 		PaymentPendingQueue   string `cfg:"payment_pending_queue"`
 		PaymentPayedQueue     string `cfg:"payment_payed_queue"`
 		PaymentCancelledQueue string `cfg:"payment_cancelled_queue"`
 		Region                string `cfg:"region"`
-		Endpoint              string `cfg:"endpoint"`
 	} `cfg:"sqs"`
 }
 

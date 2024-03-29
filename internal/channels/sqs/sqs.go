@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/rs/zerolog/log"
 	"github.com/sirupsen/logrus"
 )
 
@@ -39,7 +40,6 @@ func NewSQS() QueueInterface {
 	once.Do(func() {
 		sess := session.Must(session.NewSessionWithOptions(session.Options{
 			Config: aws.Config{
-				Endpoint:   aws.String(config.Get().SQS.Endpoint),
 				Region:     aws.String(config.Get().SQS.Region),
 				DisableSSL: aws.Bool(true),
 			},
@@ -66,11 +66,13 @@ func (q *queueSQS) ReceiveMessage() {
 
 		resp, err := q.sqsService.ReceiveMessage(paramsOrder)
 		if err != nil {
+			log.Err(err).Msg("an error occurred when receive message from the queue")
 			continue
 		}
 
 		if len(resp.Messages) > 0 {
 			for _, msg := range resp.Messages {
+				log.Info().Any("msg_id", msg.MessageId).Msg("msg received from payment queue")
 
 				err := q.processPaymentMessage([]byte(*msg.Body))
 				if err != nil {
@@ -97,6 +99,7 @@ func (q *queueSQS) processPaymentMessage(msg []byte) error {
 
 	err := json.Unmarshal(msg, &orderId)
 	if err != nil {
+		log.Err(err).Msg("an error occurred when unmarshal order")
 		return err
 	}
 
@@ -104,6 +107,7 @@ func (q *queueSQS) processPaymentMessage(msg []byte) error {
 		OrderID: orderId,
 	})
 	if err != nil {
+		log.Err(err).Any("order_id", orderId).Msg("an error occurred when create payment")
 		return err
 	}
 

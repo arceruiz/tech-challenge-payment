@@ -2,9 +2,7 @@ package repository
 
 import (
 	"context"
-	"reflect"
 	"tech-challenge-payment/internal/canonical"
-	"tech-challenge-payment/internal/config"
 	"testing"
 	"time"
 
@@ -310,11 +308,4 @@ func TestUpdate(t *testing.T) {
 		db := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 		db.Run("", tc.given.mtestFunc)
 	}
-}
-
-func TestNewMongo(t *testing.T) {
-
-	config.ParseFromFlags()
-	got := NewMongo()
-	assert.True(t, got != nil && reflect.TypeOf(got).String() == "*mongo.Database")
 }

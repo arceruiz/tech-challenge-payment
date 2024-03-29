@@ -25,11 +25,11 @@ func (r rest) Start() error {
 	router := echo.New()
 
 	router.Use(middlewares.Logger)
-	// router.Use(middlewares.Authorization)
 
 	mainGroup := router.Group("/api")
+	mainGroup.GET("/healthz", r.payment.HealthCheck)
 	paymentGroup := mainGroup.Group("/payment")
-
+	paymentGroup.Use(middlewares.Authorization)
 	r.payment.RegisterGroup(paymentGroup)
 
 	return router.Start(":" + cfg.Server.Port)
