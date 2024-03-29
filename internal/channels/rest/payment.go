@@ -16,6 +16,7 @@ type Payment interface {
 	GetByID(c echo.Context) error
 	Create(c echo.Context) error
 	GetAll(c echo.Context) error
+	HealthCheck(c echo.Context) error
 }
 
 type payment struct {
@@ -35,6 +36,9 @@ func (p *payment) RegisterGroup(g *echo.Group) {
 	g.POST("/", p.Create)
 }
 
+func (r *payment) HealthCheck(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
+}
 func (p *payment) Create(c echo.Context) error {
 	var paymentRequest PaymentRequest
 
